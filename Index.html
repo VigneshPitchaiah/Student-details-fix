@@ -1,0 +1,1160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Data Editor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 10px;
+            background-color: #e8f4ff;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 25px;
+            border: none;
+            width: 90%;
+            max-width: 500px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            animation: modalopen 0.3s;
+        }
+        @keyframes modalopen {
+            from {opacity: 0; transform: translateY(-20px);}
+            to {opacity: 1; transform: translateY(0);}
+        }
+        .close-modal {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close-modal:hover {
+            color: black;
+        }
+        /** Page Layout */
+        .container {
+            width: 100%;
+            max-width: 1100px;
+            margin: 0 auto 20px auto;
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        /** Filters Section */
+        .filters {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr) auto auto;
+            gap: 15px;
+            margin-bottom: 20px;
+            background-color: #edf7ff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+            align-items: end;
+        }
+        
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .filter-label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        
+        select, input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 15px;
+            box-sizing: border-box;
+        }
+        
+        /** Buttons */
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 15px;
+            transition: all 0.2s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        button:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        
+        #clearFilters {
+            background-color: #6c757d;
+        }
+        
+        #clearFilters:hover {
+            background-color: #5a6268;
+        }
+        
+        /** Stats and Progress */
+        .stats {
+            margin-bottom: 15px;
+            font-weight: bold;
+            color: #004085;
+        }
+        .progress-container {
+            background-color: #e3f2fd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .progress-title {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            font-size: 14px;
+            color: #555;
+        }
+        .progress-bar-container {
+            height: 22px;
+            background-color: #d4e6f7;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .progress-bar {
+            height: 100%;
+            background-color: #3498db;
+            background-image: linear-gradient(45deg, rgba(255,255,255,.15) 25%, transparent 25%, transparent 50%, rgba(255,255,255,.15) 50%, rgba(255,255,255,.15) 75%, transparent 75%, transparent);
+            background-size: 20px 20px;
+            text-align: center;
+            color: white;
+            font-weight: bold;
+            line-height: 22px;
+            transition: width 0.6s ease;
+            animation: progress-bar-stripes 1s linear infinite;
+        }
+        @keyframes progress-bar-stripes {
+            from { background-position: 0 0; }
+            to { background-position: 40px 0; }
+        }
+        .needs-update {
+            background-color: #ffeeba;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            table-layout: fixed;
+        }
+        th, td {
+            padding: 12px 10px;
+            text-align: left;
+            border-bottom: 1px solid #e1e8ed;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+        th {
+            background-color: #2980b9;
+            color: white;
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        .edit-btn {
+            padding: 6px 10px;
+            font-size: 14px;
+        }
+        .message {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .info {
+            background-color: #e8f4fd;
+            color: #004085;
+        }
+        .loading {
+            text-align: center;
+            display: none;
+        }
+        .loading:after {
+            content: " ";
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            margin: 0 10px;
+            border-radius: 50%;
+            border: 5px solid #3498db;
+            border-color: #3498db transparent #3498db transparent;
+            animation: loading 1.2s linear infinite;
+        }
+        @keyframes loading {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .table-container {
+            max-height: 400px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            border: 1px solid #d1e0ed;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        
+        /* Column widths */
+        th:nth-child(1), td:nth-child(1) { width: 18%; } /* Student name */
+        th:nth-child(2), td:nth-child(2) { width: 16%; } /* Staff name */
+        th:nth-child(3), td:nth-child(3) { width: 16%; } /* Sub region */
+        th:nth-child(4), td:nth-child(4) { width: 15%; } /* Mobile */
+        th:nth-child(5), td:nth-child(5) { width: 8%; } /* Active */
+        th:nth-child(6), td:nth-child(6) { width: 10%; } /* Updated */
+        th:nth-child(7), td:nth-child(7) { width: 12%; } /* Actions */
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .filters {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            body {
+                padding: 5px;
+            }
+            .container {
+                padding: 10px;
+            }
+            th, td {
+                padding: 8px 5px;
+                font-size: 14px;
+            }
+            .modal-content {
+                width: 95%;
+                margin: 10% auto;
+                padding: 15px;
+            }
+            .form-group {
+                margin-bottom: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Student Data Editor</h1>
+        
+        <div id="message" class="message" style="display: none;"></div>
+        
+        <div class="filters">
+            <div class="filter-group">
+                <span class="filter-label">Select Staff</span>
+                <select id="staffFilter">
+                    <option value="">All Staff</option>
+                    <!-- Staff options will be added dynamically -->
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <span class="filter-label">Select Sub Region</span>
+                <select id="regionFilter">
+                    <option value="">All Regions</option>
+                    <!-- Region options will be added dynamically -->
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <span class="filter-label">Search Name/Mobile</span>
+                <input type="text" id="searchInput" placeholder="Type to search...">
+            </div>
+            
+            <button id="applyFilters">Apply Filters</button>
+            <button id="clearFilters">Clear Filters</button>
+        </div>
+        
+        <div id="stats" class="stats"></div>
+        
+        <div class="progress-container">
+            <div class="progress-title">
+                <span>Data Completion Progress:</span>
+                <span id="progressText">0/0 students need updates</span>
+            </div>
+            <div class="progress-bar-container">
+                <div id="progressBar" class="progress-bar" style="width: 0%">0%</div>
+            </div>
+            <div class="progress-info">
+                <span id="markedUpdatedCount">Marked as updated: 0 students</span>
+            </div>
+        </div>
+        
+        <div id="loading" class="loading">Loading data...</div>
+        
+        <div class="table-container">
+            <table id="studentsTable">
+                <thead>
+                    <tr>
+                        <th>Student Name</th>
+                        <th>Staff Name</th>
+                        <th>Sub Region</th>
+                        <th>Mobile</th>
+                        <th>Active</th>
+                        <th>Updated</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <!-- Table data will be populated here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+        
+        <!-- Modal Form -->
+        <div id="editModal" class="modal">
+            <div class="modal-content">
+                <span class="close-modal">&times;</span>
+                <h2>Edit Student Information</h2>
+                <input type="hidden" id="editRowIndex">
+                
+                <div class="form-group">
+                    <label for="editStudentName">Student Name</label>
+                    <input type="text" id="editStudentName" class="form-control">
+                </div>
+                
+                <div class="form-group">
+                    <label for="editStaffName">Staff Name</label>
+                    <select id="editStaffName" class="form-control">
+                        <!-- Staff options will be added dynamically -->
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="editSubRegion">Sub Region</label>
+                    <select id="editSubRegion" class="form-control">
+                        <!-- Region options will be added dynamically -->
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="editMobile">Mobile</label>
+                    <input type="text" id="editMobile" class="form-control">
+                </div>
+                
+                <div class="form-group">
+                    <label for="editActive">Active</label>
+                    <select id="editActive" class="form-control">
+                        <option value="true">Yes</option>
+                        <option value="false">No</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="editUpdated">Mark as Updated</label>
+                    <select id="editUpdated" class="form-control">
+                        <option value="true">Yes</option>
+                        <option value="false">No</option>
+                    </select>
+                </div>
+                
+                <button id="saveButton">Save Changes</button>
+                <button id="cancelButton" style="background-color: #6c757d;">Cancel</button>
+            </div>
+        </div>
+
+    <script>
+        // Supabase configuration
+        const SUPABASE_URL = 'https://fcxdbxvuxvuoownippzm.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZjeGRieHZ1eHZ1b293bmlwcHptIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczNTAxMTQzNSwiZXhwIjoyMDUwNTg3NDM1fQ.HH3H1ZrB8tnyDSwsCO3Yj-YChJ9nYRKvnLxQ-Iw_xTA';
+        const TABLE_NAME = 'Students_rectification';
+        
+        // DOM Elements
+        const tableBody = document.getElementById('tableBody');
+        const searchInput = document.getElementById('searchInput');
+        const staffFilter = document.getElementById('staffFilter');
+        const regionFilter = document.getElementById('regionFilter');
+        const applyFiltersBtn = document.getElementById('applyFilters');
+        const clearFiltersBtn = document.getElementById('clearFilters');
+        const editModal = document.getElementById('editModal');
+        const editRowIndex = document.getElementById('editRowIndex');
+        const editStudentName = document.getElementById('editStudentName');
+        const editStaffName = document.getElementById('editStaffName');
+        const editSubRegion = document.getElementById('editSubRegion');
+        const editMobile = document.getElementById('editMobile');
+        const editActive = document.getElementById('editActive');
+        const editUpdated = document.getElementById('editUpdated');
+        const saveButton = document.getElementById('saveButton');
+        const cancelButton = document.getElementById('cancelButton');
+        const messageDiv = document.getElementById('message');
+        const loadingDiv = document.getElementById('loading');
+        const statsDiv = document.getElementById('stats');
+        const progressText = document.getElementById('progressText');
+        const progressBar = document.getElementById('progressBar');
+        const markedUpdatedCount = document.getElementById('markedUpdatedCount');
+        const closeModal = document.querySelector('.close-modal');
+        
+        // Cache data to improve performance
+        let allStudents = [];
+        let staffList = [];
+        let regionList = [];
+        let studentsNeedingUpdate = 0;
+        
+        // Initialize the application
+        async function initApp() {
+            showLoading(true);
+            try {
+                await fetchAllData();
+                populateFilters();
+                displayStudents(allStudents);
+                showLoading(false);
+            } catch (error) {
+                showMessage('Error initializing app: ' + error.message, 'error');
+                showLoading(false);
+            }
+        }
+        
+        // Fetch all data at once
+        async function fetchAllData() {
+            try {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/${TABLE_NAME}?select=*`, {
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch data');
+                }
+                
+                // Store data in memory for faster access
+                allStudents = await response.json();
+                
+                // Extract unique staff names and regions
+                staffList = [...new Set(allStudents.map(s => s.Staff_name).filter(Boolean))].sort();
+                regionList = [...new Set(allStudents.map(s => s.Sub_Region).filter(Boolean))].sort();
+                
+                // Calculate students needing updates (students with missing/empty data)
+                calculateStudentsNeedingUpdate();
+                
+                return allStudents;
+            } catch (error) {
+                showMessage('Error fetching data: ' + error.message, 'error');
+                throw error;
+            }
+        }
+        
+        // Populate filter dropdowns
+        function populateFilters() {
+            // Populate staff filter
+            staffFilter.innerHTML = '<option value="">All Staff</option>';
+            staffList.forEach(staff => {
+                const option = document.createElement('option');
+                option.value = staff;
+                option.textContent = staff;
+                staffFilter.appendChild(option);
+            });
+            
+            // Populate region filter
+            regionFilter.innerHTML = '<option value="">All Regions</option>';
+            regionList.forEach(region => {
+                const option = document.createElement('option');
+                option.value = region;
+                option.textContent = region;
+                regionFilter.appendChild(option);
+            });
+            
+            // Populate edit form dropdowns
+            editStaffName.innerHTML = '';
+            staffList.forEach(staff => {
+                const option = document.createElement('option');
+                option.value = staff;
+                option.textContent = staff;
+                editStaffName.appendChild(option);
+            });
+            
+            editSubRegion.innerHTML = '';
+            regionList.forEach(region => {
+                const option = document.createElement('option');
+                option.value = region;
+                option.textContent = region;
+                editSubRegion.appendChild(option);
+            });
+        }
+        
+        // Apply filters and display results
+        function applyFilters() {
+            const staffValue = staffFilter.value;
+            const regionValue = regionFilter.value;
+            const searchValue = searchInput.value.toLowerCase().trim();
+            
+            let filteredData = allStudents;
+            
+            // Apply staff filter
+            if (staffValue) {
+                filteredData = filteredData.filter(student => student.Staff_name === staffValue);
+            }
+            
+            // Apply region filter
+            if (regionValue) {
+                filteredData = filteredData.filter(student => student.Sub_Region === regionValue);
+            }
+            
+            // Apply search filter
+            if (searchValue) {
+                filteredData = filteredData.filter(student => 
+                    (student.Student_Name && student.Student_Name.toLowerCase().includes(searchValue)) || 
+                    (student.Mobile && student.Mobile.toLowerCase().includes(searchValue))
+                );
+            }
+            
+            displayStudents(filteredData);
+            updateStats(filteredData);
+        }
+        
+        // Clear all filters
+        function clearFilters() {
+            staffFilter.value = '';
+            regionFilter.value = '';
+            searchInput.value = '';
+            
+            displayStudents(allStudents);
+            updateStats(allStudents);
+        }
+        
+        // Update statistics
+        function updateStats(data) {
+            statsDiv.textContent = `Showing ${data.length} students out of ${allStudents.length} total records`;
+        }
+        
+        // Check if a student needs data update
+        function needsUpdate(student) {
+            // Only consider a record as updated if it has been explicitly marked as such
+            return student.updated_status !== true;
+        }
+        
+        // Calculate and update the progress bar
+        function calculateStudentsNeedingUpdate() {
+            // Students explicitly marked as updated
+            const markedAsUpdated = allStudents.filter(student => student.updated_status === true).length;
+            
+            // Calculate total students needing update (those not marked as updated)
+            studentsNeedingUpdate = allStudents.length - markedAsUpdated;
+            
+            const percentage = allStudents.length > 0 
+                ? Math.round((markedAsUpdated / allStudents.length) * 100) 
+                : 0;
+                
+            progressBar.style.width = `${percentage}%`;
+            progressBar.textContent = `${percentage}%`;
+            progressText.textContent = `${studentsNeedingUpdate}/${allStudents.length} students need updates`;
+            
+            // Update the additional progress information
+            markedUpdatedCount.textContent = `Marked as updated: ${markedAsUpdated} students`;
+        }
+        
+        // Display students in the table
+        function displayStudents(students) {
+            tableBody.innerHTML = '';
+            
+            if (students.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No records found</td></tr>';
+                return;
+            }
+            
+            students.forEach((student, index) => {
+                const row = document.createElement('tr');
+                
+                // Add a class to highlight rows that need updates
+                if (needsUpdate(student)) {
+                    row.classList.add('needs-update');
+                }
+                
+                row.innerHTML = `
+                    <td title="${student.Student_Name || ''}">${student.Student_Name || ''}</td>
+                    <td title="${student.Staff_name || ''}">${student.Staff_name || ''}</td>
+                    <td title="${student.Sub_Region || ''}">${student.Sub_Region || ''}</td>
+                    <td title="${student.Mobile || ''}">${student.Mobile || ''}</td>
+                    <td>${student.Active ? 'Yes' : 'No'}</td>
+                    <td>${student.updated_status ? '<span style="color:green;font-weight:bold;">Yes</span>' : '<span style="color:red;">No</span>'}</td>
+                    <td>
+                        <button class="edit-btn" data-index="${index}">Edit</button>
+                    </td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+            
+            // Add event listeners to edit buttons
+            document.querySelectorAll('.edit-btn').forEach(button => {
+                button.addEventListener('click', () => {
+                    const index = button.getAttribute('data-index');
+                    openEditForm(students[index], index);
+                });
+            });
+            
+            // Update statistics
+            updateStats(students);
+        }
+        
+        // Open edit modal for a student
+        function openEditForm(student, index) {
+            // Populate form
+            editRowIndex.value = index;
+            editStudentName.value = student.Student_Name || '';
+            
+            // Set staff name dropdown
+            if (student.Staff_name && editStaffName.querySelector(`option[value="${student.Staff_name}"]`)) {
+                editStaffName.value = student.Staff_name;
+            } else {
+                // If the staff name doesn't exist in dropdown, add it
+                if (student.Staff_name) {
+                    const option = document.createElement('option');
+                    option.value = student.Staff_name;
+                    option.textContent = student.Staff_name;
+                    editStaffName.appendChild(option);
+                    editStaffName.value = student.Staff_name;
+                } else {
+                    editStaffName.selectedIndex = 0;
+                }
+            }
+            
+            // Set sub region dropdown
+            if (student.Sub_Region && editSubRegion.querySelector(`option[value="${student.Sub_Region}"]`)) {
+                editSubRegion.value = student.Sub_Region;
+            } else {
+                // If the region doesn't exist in dropdown, add it
+                if (student.Sub_Region) {
+                    const option = document.createElement('option');
+                    option.value = student.Sub_Region;
+                    option.textContent = student.Sub_Region;
+                    editSubRegion.appendChild(option);
+                    editSubRegion.value = student.Sub_Region;
+                } else {
+                    editSubRegion.selectedIndex = 0;
+                }
+            }
+            
+            editMobile.value = student.Mobile || '';
+            editActive.value = student.Active ? 'true' : 'false';
+            editUpdated.value = student.updated_status ? 'true' : 'false';
+            
+            // Show modal
+            editModal.style.display = 'block';
+        }
+        
+        async function saveChanges() {
+            showLoading(true);
+            
+            const index = parseInt(editRowIndex.value);
+            const currentFilteredStudents = getCurrentFilteredStudents();
+            const student = currentFilteredStudents[index];
+            
+            // Check if we have the student object
+            if (!student) {
+                showMessage('Error: Student data not found', 'error');
+                showLoading(false);
+                return;
+            }
+            
+            const updatedData = {
+                Student_Name: editStudentName.value,
+                Staff_name: editStaffName.value,
+                Sub_Region: editSubRegion.value,
+                Mobile: editMobile.value,
+                Active: editActive.value === 'true',
+                updated_status: editUpdated.value === 'true'
+            };
+            
+            try {
+                // Use a single field for matching - preferably a unique identifier
+                let queryParam = '';
+                
+                // First try using Mobile as it's likely to be unique
+                if (student.Mobile) {
+                    queryParam = `Mobile=eq.${encodeURIComponent(student.Mobile)}`;
+                }
+                // Fall back to Student_Name if Mobile is not available
+                else if (student.Student_Name) {
+                    queryParam = `Student_Name=eq.${encodeURIComponent(student.Student_Name)}`;
+                }
+                // If neither is available, use a combination of other fields
+                else if (student.Staff_name && student.Sub_Region) {
+                    queryParam = `Staff_name=eq.${encodeURIComponent(student.Staff_name)}&Sub_Region=eq.${encodeURIComponent(student.Sub_Region)}`;
+                }
+                // If still no identifying fields, show an error
+                else {
+                    showMessage('Error: Not enough information to identify the record', 'error');
+                    showLoading(false);
+                    return;
+                }
+                
+                console.log(`Updating record with: ${queryParam}`);
+                
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/${TABLE_NAME}?${queryParam}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=minimal'
+                    },
+                    body: JSON.stringify(updatedData)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to update student data: ${response.status} ${response.statusText}`);
+                }
+                
+                // Update the local cache - find the student in our array
+                const studentIndex = allStudents.findIndex(s => 
+                    (s.Mobile === student.Mobile) || 
+                    (s.Student_Name === student.Student_Name && s.Staff_name === student.Staff_name)
+                );
+                
+                if (studentIndex !== -1) {
+                    allStudents[studentIndex] = { ...allStudents[studentIndex], ...updatedData };
+                } else {
+                    // Fallback - refresh all data from server if we can't find the record locally
+                    await fetchAllData();
+                }
+                
+                showMessage('Student information updated successfully!', 'success');
+                editModal.style.display = 'none';
+                
+                // Refresh the staff and region lists
+                staffList = [...new Set(allStudents.map(s => s.Staff_name).filter(Boolean))].sort();
+                regionList = [...new Set(allStudents.map(s => s.Sub_Region).filter(Boolean))].sort();
+                
+                // Update the progress bar
+                calculateStudentsNeedingUpdate();
+                
+                // Refresh filters and display
+                populateFilters();
+                applyFilters();
+                showLoading(false);
+            } catch (error) {
+                console.error('Update error:', error);
+                showMessage(`Error updating student data: ${error.message}`, 'error');
+                showLoading(false);
+            }
+        }
+        
+        // Get current filtered students
+        function getCurrentFilteredStudents() {
+            const staffValue = staffFilter.value;
+            const regionValue = regionFilter.value;
+            const searchValue = searchInput.value.toLowerCase().trim();
+            
+            let filteredData = allStudents;
+            
+            if (staffValue) {
+                filteredData = filteredData.filter(student => student.Staff_name === staffValue);
+            }
+            
+            if (regionValue) {
+                filteredData = filteredData.filter(student => student.Sub_Region === regionValue);
+            }
+            
+            if (searchValue) {
+                filteredData = filteredData.filter(student => 
+                    (student.Student_Name && student.Student_Name.toLowerCase().includes(searchValue)) || 
+                    (student.Mobile && student.Mobile.toLowerCase().includes(searchValue))
+                );
+            }
+            
+            return filteredData;
+        }
+        
+        // Show/hide loading indicator
+        function showLoading(show) {
+            loadingDiv.style.display = show ? 'block' : 'none';
+        }
+        
+        // Show message
+        function showMessage(text, type) {
+            messageDiv.textContent = text;
+            messageDiv.className = `message ${type}`;
+            messageDiv.style.display = 'block';
+            
+            // Hide after 5 seconds
+            setTimeout(() => {
+                messageDiv.style.display = 'none';
+            }, 5000);
+        }
+        
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', initApp);
+        
+        // Add input event listener for real-time filtering
+        searchInput.addEventListener('input', function() {
+            // Only filter if the input has at least 3 characters or is empty
+            if (this.value.length >= 3 || this.value.length === 0) {
+                applyFilters();
+            }
+        });
+        
+        applyFiltersBtn.addEventListener('click', applyFilters);
+        clearFiltersBtn.addEventListener('click', clearFilters);
+        
+        saveButton.addEventListener('click', saveChanges);
+        
+        // Modal event listeners
+        cancelButton.addEventListener('click', () => {
+            editModal.style.display = 'none';
+        });
+        
+        closeModal.addEventListener('click', () => {
+            editModal.style.display = 'none';
+        });
+        
+        // Close modal when clicking outside of it
+        window.addEventListener('click', (event) => {
+            if (event.target === editModal) {
+                editModal.style.display = 'none';
+            }
+        });
+        
+        // Add responsive behavior for window resize
+        window.addEventListener('resize', function() {
+            // Adjust UI elements if needed based on window size
+            const windowWidth = window.innerWidth;
+            if (windowWidth < 768) {
+                // Make additional adjustments for very small screens if needed
+            }
+        });
+    </script>
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Data Editor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 10px;
+            background-color: #e8f4ff;
+        }
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 25px;
+            border: none;
+            width: 90%;
+            max-width: 500px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            animation: modalopen 0.3s;
+        }
+        @keyframes modalopen {
+            from {opacity: 0; transform: translateY(-20px);}
+            to {opacity: 1; transform: translateY(0);}
+        }
+        .close-modal {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close-modal:hover {
+            color: black;
+        }
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.15);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 20px;
+            background-color: #edf7ff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        }
+        .filter-group {
+            flex: 1;
+            min-width: 200px;
+        }
+        .filter-label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        select, input[type="text"] {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 15px;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 15px;
+            transition: all 0.2s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        button:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        .action-btn {
+            margin-top: 22px;
+            width: 100%;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            table-layout: fixed;
+        }
+        th, td {
+            padding: 12px 10px;
+            text-align: left;
+            border-bottom: 1px solid #e1e8ed;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+        th {
+            background-color: #2980b9;
+            color: white;
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        .edit-btn {
+            padding: 6px 10px;
+            font-size: 14px;
+        }
+        .edit-form {
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+            border: 2px solid #4CAF50;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .message {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .info {
+            background-color: #e8f4fd;
+            color: #004085;
+        }
+        .loading {
+            text-align: center;
+            display: none;
+        }
+        .loading:after {
+            content: " ";
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            margin: 0 10px;
+            border-radius: 50%;
+            border: 5px solid #4CAF50;
+            border-color: #4CAF50 transparent #4CAF50 transparent;
+            animation: loading 1.2s linear infinite;
+        }
+        @keyframes loading {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .stats {
+            margin-bottom: 15px;
+            font-weight: bold;
+            color: #004085;
+        }
+        .progress-container {
+            background-color: #e3f2fd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .progress-title {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        .progress-bar-container {
+            height: 22px;
+            background-color: #d4e6f7;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .progress-bar {
+            height: 100%;
+            background-color: #3498db;
+            background-image: linear-gradient(45deg, rgba(255,255,255,.15) 25%, transparent 25%, transparent 50%, rgba(255,255,255,.15) 50%, rgba(255,255,255,.15) 75%, transparent 75%, transparent);
+            background-size: 20px 20px;
+            text-align: center;
+            color: white;
+            font-weight: bold;
+            line-height: 22px;
+            transition: width 0.6s ease;
+            animation: progress-bar-stripes 1s linear infinite;
+        }
+        @keyframes progress-bar-stripes {
+            from { background-position: 0 0; }
+            to { background-position: 40px 0; }
+        }
+        .needs-update {
+            background-color: #ffeeba;
+        }
+        .table-container {
+            max-height: 400px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            border: 1px solid #d1e0ed;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .filter-group {
+                min-width: 100%;
+            }
+            .filter-buttons {
+                flex-direction: column;
+                gap: 5px;
+            }
+            body {
+                padding: 5px;
+            }
+            .container {
+                padding: 10px;
+            }
+            th, td {
+                padding: 8px 5px;
+                font-size: 14px;
+            }
+            .modal-content {
+                width: 95%;
+                margin: 10% auto;
+                padding: 15px;
+            }
+            button {
+                width: 100%;
+                margin-bottom: 5px;
+            }
+            .form-group {
+                margin-bottom: 10px;
+            }
+        }
+        
+        /* Column widths */
+        th:nth-child(1), td:nth-child(1) { width: 22%; } /* Student name */
+        th:nth-child(2), td:nth-child(2) { width: 18%; } /* Staff name */
+        th:nth-child(3), td:nth-child(3) { width: 18%; } /* Sub region */
+        th:nth-child(4), td:nth-child(4) { width: 18%; } /* Mobile */
+        th:nth-child(5), td:nth-child(5) { width: 10%; } /* Active */
+        th:nth-child(6), td:nth-child(6) { width: 14%; } /* Actions */
+    </style>
+</head>
+</html>
